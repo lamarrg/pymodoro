@@ -2,7 +2,7 @@ import tkinter
 from tkinter import messagebox
 
 
-DEFAULT_GAP = 60 * 25
+DEFAULT_GAP = 6
 
 class Pymodoro:
 	def __init__(self, master):
@@ -16,6 +16,7 @@ class Pymodoro:
 		self.time_left.set(DEFAULT_GAP)
 		self.time_left.trace('w', self.alert)
 		self.running = False
+		self.paused = False
 		
 		self.build_grid()
 		self.build_banner()
@@ -63,9 +64,17 @@ class Pymodoro:
 			command=self.stop_timer
 		)
 		
+		self.pause_button = tkinter.Button(
+			buttons_frame,
+			text='Pause',
+			command=self.pause_timer
+		)
+		
 		self.start_button.grid(row=0, column=0, sticky='ew')
-		self.stop_button.grid(row=0, column=1, sticky='ew')
+		self.stop_button.grid(row=0, column=2, sticky='ew')
+		self.pause_button.grid(row=0, column=1, sticky='ew')
 		self.stop_button.configure(state=tkinter.DISABLED)
+		self.pause_button.configure(state=tkinter.DISABLED)
 		
 	def build_timer(self, *args):
 		timer = tkinter.Label(
@@ -76,17 +85,30 @@ class Pymodoro:
 		timer.grid(row=1, column=0, sticky='nsew')
 		
 	def start_timer(self):
-		self.time_left.set(DEFAULT_GAP)
+		if not self.paused:
+			self.time_left.set(DEFAULT_GAP)
 		self.running = True
+		self.paused = False
 		#print("started")
 		self.stop_button.config(state=tkinter.NORMAL)
 		self.start_button.config(state=tkinter.DISABLED)
+		self.pause_button.config(state=tkinter.NORMAL)
 		
 	def stop_timer(self):
 		self.running = False
+		self.paused = False
 		#print("stopped")
 		self.stop_button.config(state=tkinter.DISABLED)
 		self.start_button.config(state=tkinter.NORMAL)
+		self.pause_button.config(state=tkinter.DISABLED)
+
+		
+	def pause_timer(self):
+		self.paused = True
+		self.stop_button.config(state=tkinter.NORMAL)
+		self.start_button.config(state=tkinter.NORMAL)
+		self.pause_button.config(state=tkinter.DISABLED)
+		
 		
 	def minutes_seconds(self, seconds):
 		return int(seconds/60), int(seconds%60)
@@ -94,7 +116,11 @@ class Pymodoro:
 	def update(self):
 		time_left = self.time_left.get()
 		
-		if self.running and time_left:
+		if self.paused:
+			minutes, seconds = self.minutes_seconds(time_left)
+			self.timer_text.set('{:0>2}:{:0>2}'.format(minutes, seconds))
+		
+		elif self.running and time_left:
 			minutes, seconds = self.minutes_seconds(time_left)
 			self.timer_text.set('{:0>2}:{:0>2}'.format(minutes, seconds))
 			self.time_left.set(time_left-1)
